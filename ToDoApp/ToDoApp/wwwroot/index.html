@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Görev Takip Uygulaması</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            text-align: center;
+            padding: 40px;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        input, textarea {
+            padding: 10px;
+            width: 300px;
+            margin: 5px auto;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            display: block;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 16px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+            button:hover {
+                background-color: #45a049;
+            }
+
+        #taskList {
+            list-style-type: none;
+            padding: 0;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+            #taskList li {
+                background-color: #fff;
+                margin: 10px 0;
+                padding: 12px;
+                border-radius: 6px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            #taskList button {
+                background-color: #e74c3c;
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+
+                #taskList button:hover {
+                    background-color: #c0392b;
+                }
+
+        #status {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .button-footer-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Görev Takip Uygulaması</h1>
+
+    <input type="text" id="title" placeholder="Başlık" />
+    <textarea id="description" placeholder="Açıklama" rows="4" cols="50"></textarea>
+
+    <div class="button-footer-wrapper">
+        <button onclick="addTask()">Ekle</button>
+        <span class="footer">Coded by YUSUF ISLAM BUDAK</span>
+    </div>
+
+    <p id="status"></p>
+
+    <h2>Tüm Görevler</h2>
+    <ul id="taskList"></ul>
+
+    <script>
+        async function addTask() {
+            const title = document.getElementById('title').value.trim();
+            const description = document.getElementById('description').value.trim();
+            const statusEl = document.getElementById("status");
+
+            if (!title || !description) {
+                statusEl.style.color = 'red';
+                statusEl.textContent = "Lütfen tüm alanları doldurun.";
+                return;
+            }
+
+            const response = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, description })
+            });
+
+            if (response.ok) {
+                statusEl.style.color = 'green';
+                statusEl.textContent = "✅ Görev başarıyla eklendi.";
+                document.getElementById('title').value = '';
+                document.getElementById('description').value = '';
+                loadTasks();
+            } else {
+                const errorText = await response.text();
+                statusEl.style.color = 'red';
+                statusEl.textContent = "❌ Hata: " + response.status + " - " + errorText;
+                console.error("Görev eklenemedi:", errorText);
+            }
+        }
+
+        async function deleteTask(id) {
+            const confirmed = confirm("Bu görevi silmek istediğine emin misin?");
+            if (!confirmed) return;
+
+            const response = await fetch(`/api/tasks/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                loadTasks();
+            } else {
+                alert("Görev silinemedi.");
+                console.error(await response.text());
+            }
+        }
+
+        async function loadTasks() {
+            const response = await fetch('/api/tasks');
+            const tasks = await response.json();
+
+            const list = document.getElementById('taskList');
+            list.innerHTML = '';
+
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                        <span>${task.title} - ${task.description} (${task.isCompleted ? 'Tamamlandı' : 'Devam ediyor'})</span>
+                        <button onclick="deleteTask('${task.id}')">Sil</button>
+                    `;
+                list.appendChild(li);
+            });
+        }
+
+        loadTasks();
+    </script>
+</body>
+</html>
